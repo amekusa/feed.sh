@@ -83,13 +83,15 @@ _main() {
 					;;
 				replace)
 					replace="$1"
+					ctx=''
 					;;
 				write)
-					[ -n "$write" ] && _err "multiple files for -w option are not supported"
 					write="$1"
+					ctx=''
 					;;
 				interval)
 					interval="$1"
+					ctx=''
 					;;
 				*)
 					err=true
