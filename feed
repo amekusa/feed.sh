@@ -42,6 +42,7 @@ _main() {
 	local cmd=''
 	local replace='{item}'
 	local write=''
+	local interval=''
 	local parallel=false
 	while [ $# -gt 0 ]; do
 		case "$ctx" in
@@ -62,6 +63,9 @@ _main() {
 			-w|--write)
 				ctx=write
 				;;
+			-i|--interval)
+				ctx=interval
+				;;
 			-p|--parallel)
 				parallel=true
 				;;
@@ -80,6 +84,9 @@ _main() {
 				write)
 					[ -n "$write" ] && _err "multiple files for -w option are not supported"
 					write="$1"
+					;;
+				interval)
+					interval="$1"
 					;;
 				*)
 					err=true
@@ -106,6 +113,7 @@ _main() {
 		EOF
 	fi
 
+	local sleep
 	local f; for f in "${file[@]}"; do
 		local IFS line
 		while IFS= read -r line; do
@@ -113,13 +121,16 @@ _main() {
 			if [ -z "$line" ] || [[ "$line" =~ ^[[:space:]]*# ]]; then
 				continue
 			fi
-			# run cmd
+			# run command
+			[ -n "$sleep" ] && sleep "$sleep"
 			local _cmd="${cmd//"$replace"/"$line"}" # replace '{item}' in $cmd with $line
 			if $parallel; then
 				_run "$_cmd" "$line" "$tmp" &
 			else
 				_run "$_cmd" "$line" "$tmp"
 			fi
+			# set interval
+			sleep="$interval"
 		done < "$f"
 	done
 
