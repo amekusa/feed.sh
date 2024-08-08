@@ -35,7 +35,7 @@ Options:
 EOF
 }
 
-_err() {
+_die() {
 	echo "[ERR] $1"
 	exit 1
 }
@@ -109,16 +109,16 @@ _main() {
 			esac
 			;;
 		esac
-		$err && _err "invalid argument: '$1'"
+		$err && _die "invalid argument: '$1'"
 		shift
 	done
-	[ -z "$cmd" ] && _err "specify command to run"
+	[ -z "$cmd" ] && _die "specify command to run"
 	cmd="${cmd:1}"
 
 	# prepare a tmp file for logging
 	local tmp
 	if [ -n "$write" ]; then
-		tmp="$(mktemp)" || _err "failed to create a temp file"
+		tmp="$(mktemp)" || _die "failed to create a temp file"
 		cat <<- EOF > "$tmp"
 		# Failed Items @ $(date +'%F %H:%M:%S')
 		# command: $cmd
