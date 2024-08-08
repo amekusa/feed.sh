@@ -1,4 +1,5 @@
 # FEED.SH
+A commandline utility that runs arbitrary command for each line in files.
 
 ```
 Usage:
