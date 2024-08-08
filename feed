@@ -4,8 +4,12 @@
 # by Satoshi Soma (github.com/amekusa)
 
 _version="0.1.0"
-_terminating=false
+_interrupted=false
 _status=""
+_error=""
+
+_total=0
+_fails=0
 
 _help() {
 	cat << EOF
@@ -36,7 +40,7 @@ EOF
 }
 
 _die() {
-	echo "[ERR] $1"
+	echo "[ERROR] $1"
 	exit 1
 }
 
@@ -136,20 +140,23 @@ _main() {
 				continue
 			fi
 
+			((_total++))
+
 			# replace '{item}' in $cmd with $line
 			local _cmd="${cmd//"$replace"/"$line"}"
 
 			# handle ctrl+c
-			if "$_terminating"; then
+			if "$_interrupted"; then
 				local now="$(date +'%F %H:%M:%S')"
 				echo "$now [CANCEL] $_cmd"
 				if [ -n "$tmp" ]; then
 					cat <<- EOF >> "$tmp"
-					# $now, canceled by user
+					# $now, interrupted by user
 					$line
 
 					EOF
 				fi
+				((_fails++))
 				continue
 			fi
 
@@ -170,6 +177,14 @@ _main() {
 
 	$parallel && wait
 
+	cat <<- EOF
+
+	--- FINISHED ---
+	Total items:  $_total
+	Failed items: $_fails
+
+	EOF
+
 	# flush the tmp file
 	if [ -n "$tmp" ]; then
 		cp "$tmp" "$write" &&
@@ -177,6 +192,7 @@ _main() {
 	fi
 
 	if [ -n "$_status" ]; then
+		echo "[ERROR] $_error"
 		return "$_status"
 	fi
 }
@@ -197,6 +213,11 @@ _run() {
 
 			EOF
 		fi
+		((_fails++))
+		if [ -z "$_status" ]; then
+			_error="$_fails items failed"
+			_status=1
+		fi
 		return 1
 	fi
 }
@@ -204,7 +225,9 @@ _run() {
 _kill() {
 	echo
 	echo "Terminating..."
-	_terminating=true
+	_interrupted=true
+	_error="interrupted by user"
+	_status=2
 }
 
 trap _kill INT
