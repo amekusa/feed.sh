@@ -17,7 +17,12 @@ Options:
                    gets replaced with each line in the file.
   -r, --replace  : Specify the placeholder to be replaced in
                    the command. (default: {item})
-  -w, --write    : Specify a file to log items if the command failed.
+  -w, --write    : Specify a file to log failed items.
+                   The file can be passed to '--file' afterwards
+                   if you want to retry the failed items.
+  -u, --update   : Write to the same file as '--file'.
+                   Same as '-f items.txt -w items.txt'.
+                   If '-f' was multiple, only the 1st file gets overwritten.
   -i, --interval : Set iteration interval.
                    ex.) 5s = 5secs, 30m = 30mins, 1h = 1hour
   -p, --parallel : Run in parallel.
