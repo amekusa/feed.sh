@@ -3,11 +3,11 @@
 # === FEED.SH ===
 # by Satoshi Soma (github.com/amekusa)
 
-version="0.1.0"
+_version="0.1.0"
 
 _help() {
 	cat << EOF
-=== FEED.SH v$version ===
+=== FEED.SH v$_version ===
 by Satoshi Soma (github.com/amekusa)
 
 Usage:
