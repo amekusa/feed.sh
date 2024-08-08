@@ -204,6 +204,11 @@ _main() {
 		rm "$tmp"
 	fi
 
+	if [ "$_fails" -gt 0 ] && [ -z "$_status" ]; then
+		_error="$_fails items failed"
+		_status=1
+	fi
+
 	if [ -n "$_status" ]; then
 		echo "[ERROR] $_error"
 		return "$_status"
@@ -227,10 +232,6 @@ _run() {
 			EOF
 		fi
 		((_fails++))
-		if [ -z "$_status" ] || [ "$_status" -eq 1 ]; then
-			_error="$_fails items failed"
-			_status=1
-		fi
 		return 1
 	fi
 }
