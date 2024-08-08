@@ -188,10 +188,11 @@ _run() {
 		return 0
 	else
 		local code="$?"
-		echo "$(date +'%F %H:%M:%S') [FAIL] $1"
+		local now="$(date +'%F %H:%M:%S')"
+		echo "$now [FAIL] $1 (code:$code, err:$out)"
 		if [ -n "$3" ]; then
 			cat <<- EOF >> "$3"
-			# $(date +'%F %H:%M:%S'), code:$code, err:$out
+			# $now, code:$code, err:$out
 			$2
 
 			EOF
