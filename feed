@@ -4,6 +4,8 @@
 # by Satoshi Soma (github.com/amekusa)
 
 _version="0.1.0"
+_terminating=false
+_status=""
 
 _help() {
 	cat << EOF
@@ -42,14 +44,17 @@ _main() {
 	if [ -z "$1" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
 		_help; return 1
 	fi
-	local ctx=''
+
+	local file=() # files to read
+	local cmd="" # command to run
+	local replace="{item}" # placeholder to be replaced with each item
+	local write="" # file to write
+	local interval="" # iteration interval
+	local parallel=false # whether to run in parallel
+
+	# parsing args
+	local ctx
 	local err=false
-	local file=()
-	local cmd=''
-	local replace='{item}'
-	local write=''
-	local interval=''
-	local parallel=false
 	while [ $# -gt 0 ]; do
 		case "$ctx" in
 		cmd) # cmd context
@@ -86,15 +91,15 @@ _main() {
 					;;
 				replace)
 					replace="$1"
-					ctx=''
+					ctx=
 					;;
 				write)
 					write="$1"
-					ctx=''
+					ctx=
 					;;
 				interval)
 					interval="$1"
-					ctx=''
+					ctx=
 					;;
 				*)
 					err=true
@@ -107,10 +112,10 @@ _main() {
 		$err && _err "invalid argument: '$1'"
 		shift
 	done
-
 	[ -z "$cmd" ] && _err "specify command to run"
 	cmd="${cmd:1}"
 
+	# prepare a tmp file for logging
 	local tmp
 	if [ -n "$write" ]; then
 		tmp="$(mktemp)" || _err "failed to create a temp file"
@@ -121,6 +126,7 @@ _main() {
 		EOF
 	fi
 
+	# main loop
 	local sleep
 	local f; for f in "${file[@]}"; do
 		local IFS line
@@ -129,14 +135,34 @@ _main() {
 			if [ -z "$line" ] || [[ "$line" =~ ^[[:space:]]*# ]]; then
 				continue
 			fi
-			# run command
+
+			# replace '{item}' in $cmd with $line
+			local _cmd="${cmd//"$replace"/"$line"}"
+
+			# handle ctrl+c
+			if "$_terminating"; then
+				local now="$(date +'%F %H:%M:%S')"
+				echo "$now [CANCEL] $_cmd"
+				if [ -n "$tmp" ]; then
+					cat <<- EOF >> "$tmp"
+					# $now, canceled by user
+					$line
+
+					EOF
+				fi
+				continue
+			fi
+
+			# sleep for interval
 			[ -n "$sleep" ] && sleep "$sleep"
-			local _cmd="${cmd//"$replace"/"$line"}" # replace '{item}' in $cmd with $line
+
+			# run the command
 			if $parallel; then
 				_run "$_cmd" "$line" "$tmp" &
 			else
 				_run "$_cmd" "$line" "$tmp"
 			fi
+
 			# set interval
 			sleep="$interval"
 		done < "$f"
@@ -144,18 +170,25 @@ _main() {
 
 	$parallel && wait
 
-	cp "$tmp" "$write"
-	rm "$tmp"
+	# flush the tmp file
+	if [ -n "$tmp" ]; then
+		cp "$tmp" "$write" &&
+		rm "$tmp"
+	fi
+
+	if [ -n "$_status" ]; then
+		return "$_status"
+	fi
 }
 
 _run() {
 	local out
 	if out="$(eval "$1" 2>&1)"; then
-		echo "$(date +'%H:%M:%S') [DONE] $1"
+		echo "$(date +'%F %H:%M:%S') [DONE] $1"
 		return 0
 	else
 		local code="$?"
-		echo "$(date +'%H:%M:%S') [FAIL] $1"
+		echo "$(date +'%F %H:%M:%S') [FAIL] $1"
 		if [ -n "$3" ]; then
 			cat <<- EOF >> "$3"
 			# $(date +'%F %H:%M:%S'), code:$code, err:$out
@@ -166,6 +199,14 @@ _run() {
 		return 1
 	fi
 }
+
+_kill() {
+	echo
+	echo "Terminating..."
+	_terminating=true
+}
+
+trap _kill INT
 
 _main "$@"
 
