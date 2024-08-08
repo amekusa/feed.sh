@@ -5,6 +5,34 @@
 
 version="0.1.0"
 
+_help() {
+	cat << EOF
+=== FEED.SH v$version ===
+by Satoshi Soma (github.com/amekusa)
+
+Usage:
+  feed -f <file> -c <command>
+
+Example:
+  feed -f urls.txt -c wget {item}
+
+Options:
+  -h, --help     : Show this help.
+  -f, --file     : Specify file(s) to iterate over.
+                   Lines that start with '#' are ignored.
+  -c, --cmd      : Specify a command to run.
+                   Every occurrence of '{item}' in the command
+                   gets replaced with each line in the file.
+  -r, --replace  : Specify the placeholder to be replaced in
+                   the command. (default: {item})
+  -w, --write    : Specify a file to log items if the command failed.
+  -i, --interval : Set iteration interval.
+                   ex.) 5s = 5secs, 30m = 30mins, 1h = 1hour
+  -p, --parallel : Run in parallel.
+
+EOF
+}
+
 _err() {
 	echo "[ERR] $1"
 	exit 1
@@ -12,32 +40,7 @@ _err() {
 
 _main() {
 	if [ -z "$1" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-		cat <<- EOF
-		=== FEED.SH v$version ===
-		by Satoshi Soma (github.com/amekusa)
-
-		Usage:
-		  feed -f <file> -c <command>
-
-		Example:
-		  feed -f urls.txt -c wget {item}
-
-		Options:
-		  -h, --help     : Show this help.
-		  -f, --file     : Specify file(s) to iterate over.
-		                   Lines that start with '#' are ignored.
-		  -c, --cmd      : Specify a command to run.
-		                   Every occurrence of '{item}' in the command
-		                   gets replaced with each line in the file.
-		  -r, --replace  : Specify the placeholder to be replaced in
-		                   the command. (default: {item})
-		  -w, --write    : Specify a file to log items if the command failed.
-		  -i, --interval : Set iteration interval.
-		                   ex.) 5s = 5secs, 30m = 30mins, 1h = 1hour
-		  -p, --parallel : Run in parallel.
-
-		EOF
-		return 1
+		_help; return 1
 	fi
 	local ctx=''
 	local err=false
