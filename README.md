@@ -26,11 +26,12 @@ Options:
   -u, --update   : Save failed items to the same file as '--file'.
                    This option is a shortcut for like '-f items.txt -w items.txt'.
                    If '-f' was multiple, only the 1st file gets overwritten.
-  -i, --interval : Set interval for eash iteration. (default 0)
+  -i, --interval : Set interval for each iteration. (default: 0)
                    Examples: 5s = 5 seconds
                              3m = 3 minutes
                              1h = 1 hour
-                             3-6m = random between 3m and 6m
+                             1d = 24 hours
+                             3-6m = random seconds between 3m and 6m
   -p, --parallel : Max number of processes to run in parallel. (default: 0)
 
 ````
