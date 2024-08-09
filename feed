@@ -140,11 +140,10 @@ _main() {
 	cmd="${cmd:1}"
 
 	# parse random interval range
-	local i_min i_max i_unit
-	if [[ "$interval" =~ ^([0-9]+)-([0-9]+)([smh]?)$ ]]; then
-		i_min="${BASH_REMATCH[1]}"
-		i_max="${BASH_REMATCH[2]}"
-		i_unit="${BASH_REMATCH[3]}"
+	local i_min i_max
+	if [[ "$interval" =~ ^([0-9]+)-([0-9]+)([^0-9]*)$ ]]; then
+		i_min="$(_seconds "${BASH_REMATCH[1]}${BASH_REMATCH[3]}")"
+		i_max="$(_seconds "${BASH_REMATCH[2]}${BASH_REMATCH[3]}")"
 	fi
 
 	# prepare a tmp file for logging
@@ -204,9 +203,9 @@ _main() {
 			fi
 
 			# set interval
-			if [ -n "$i_min" ]
-				then sleep="$(_random "$i_min" "$i_max")$i_unit"
-				else sleep="$interval"
+			if [ -n "$i_min" ] && [ -n "$i_max" ]
+				then sleep="$(_random "$i_min" "$i_max")"
+				else sleep="$(_seconds "$interval")"
 			fi
 		done < "$f"
 	done
@@ -259,6 +258,19 @@ _run() {
 			EOF
 		fi
 		kill -s USR2 $_pid # send USR2 signal to self (or parent)
+	fi
+}
+
+_seconds() {
+	if [[ "$1" =~ ^([0-9]+)([^0-9]*)$ ]]; then
+		local n="${BASH_REMATCH[1]}"
+		case "${BASH_REMATCH[2]}" in
+			m) ((n *= 60)) ;;
+			h) ((n *= 3600)) ;;
+		esac
+		echo "$n"
+	else
+		echo "$1"
 	fi
 }
 
