@@ -10,6 +10,7 @@ _interrupted=false
 _status=""
 _error=""
 _done=0
+_workers=0
 
 _help() {
 	cat << EOF
@@ -42,7 +43,7 @@ Options:
                    If '-f' was multiple, only the 1st file gets overwritten.
   -i, --interval : Set interval for eash iteration.
                    Examples: 5s, 10m, 1h
-  -p, --parallel : Run in parallel.
+  -p, --parallel : Max number of processes to run in parallel. (default: 0)
 
 EOF
 }
@@ -63,7 +64,7 @@ _main() {
 	local write="" # file to write
 	local update=false # whether to overwrite '--file'
 	local interval="" # iteration interval
-	local parallel=false # whether to run in parallel
+	local parallel=0 # max processes to run in parallel
 
 	# parsing args
 	local ctx
@@ -90,11 +91,11 @@ _main() {
 			-i|--interval)
 				ctx=interval
 				;;
+			-p|--parallel)
+				ctx=parallel
+				;;
 			-u|--update)
 				update=true
-				;;
-			-p|--parallel)
-				parallel=true
 				;;
 			-*)
 				err=true
@@ -115,6 +116,10 @@ _main() {
 					;;
 				interval)
 					interval="$1"
+					ctx=
+					;;
+				parallel)
+					parallel="$1"
 					ctx=
 					;;
 				*)
@@ -148,8 +153,8 @@ _main() {
 
 	# main loop
 	local total=0
-	local sleep
 	local f; for f in "${file[@]}"; do
+		local sleep
 		local IFS line
 		while IFS= read -r line; do
 			# skip blank lines and comment lines
@@ -180,7 +185,8 @@ _main() {
 			[ -n "$sleep" ] && sleep "$sleep"
 
 			# run the command
-			if $parallel; then
+			((_workers++))
+			if [ "$_workers" -le "$parallel" ]; then
 				_run "$_cmd" "$line" "$tmp" &
 			else
 				_run "$_cmd" "$line" "$tmp"
@@ -191,7 +197,7 @@ _main() {
 		done < "$f"
 	done
 
-	$parallel && wait
+	wait
 
 	local fails="$((total-_done))"
 	cat <<- EOF
@@ -222,9 +228,11 @@ _main() {
 _run() {
 	local out
 	if out="$(eval "$1" 2>&1)"; then
+		# success
 		echo "$(date +'%F %H:%M:%S') [DONE] $1"
-		kill -s USR1 $_pid # send USR1 signal to myself (or parent)
+		kill -s USR1 $_pid # send USR1 signal to self (or parent)
 	else
+		# failure
 		local code="$?"
 		local now="$(date +'%F %H:%M:%S')"
 		echo "$now [FAIL] $1 (code:$code, err:$out)"
@@ -235,6 +243,7 @@ _run() {
 
 			EOF
 		fi
+		kill -s USR2 $_pid # send USR2 signal to self (or parent)
 	fi
 }
 
@@ -251,12 +260,20 @@ _on_SIGINT() {
 # signal handler: USR1
 _on_SIGUSR1() {
 	((_done++))
+	((_workers--))
+	wait
+}
+
+# signal handler: USR2
+_on_SIGUSR2() {
+	((_workers--))
 	wait
 }
 
 # set signal handlers
 trap _on_SIGINT INT
 trap _on_SIGUSR1 USR1
+trap _on_SIGUSR2 USR2
 
 _main "$@"
 
