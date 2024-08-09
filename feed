@@ -9,9 +9,7 @@ _pid=$$
 _interrupted=false
 _status=""
 _error=""
-
-_total=0
-_fails=0
+_done=0
 
 _help() {
 	cat << EOF
@@ -149,6 +147,7 @@ _main() {
 	fi
 
 	# main loop
+	local total=0
 	local sleep
 	local f; for f in "${file[@]}"; do
 		local IFS line
@@ -158,7 +157,7 @@ _main() {
 				continue
 			fi
 
-			((_total++))
+			((total++))
 
 			# replace '{item}' in $cmd with $line
 			local _cmd="${cmd//"$replace"/"$line"}"
@@ -174,7 +173,6 @@ _main() {
 
 					EOF
 				fi
-				((_fails++))
 				continue
 			fi
 
@@ -195,11 +193,12 @@ _main() {
 
 	$parallel && wait
 
+	local fails="$((total-_done))"
 	cat <<- EOF
 
 	--- FINISHED ---
-	 Total items: $_total
-	Failed items: $_fails
+	 Total items: $total
+	Failed items: $fails
 
 	EOF
 
@@ -209,8 +208,8 @@ _main() {
 		rm "$tmp"
 	fi
 
-	if [ "$_fails" -gt 0 ] && [ -z "$_status" ]; then
-		_error="$_fails items failed"
+	if [ "$fails" -gt 0 ] && [ -z "$_status" ]; then
+		_error="$fails items failed"
 		_status=1
 	fi
 
@@ -224,6 +223,7 @@ _run() {
 	local out
 	if out="$(eval "$1" 2>&1)"; then
 		echo "$(date +'%F %H:%M:%S') [DONE] $1"
+		kill -s USR1 $_pid # send USR1 signal to myself (or parent)
 	else
 		local code="$?"
 		local now="$(date +'%F %H:%M:%S')"
@@ -235,7 +235,6 @@ _run() {
 
 			EOF
 		fi
-		kill -s USR1 $_pid # send USR1 signal to myself (or parent)
 	fi
 }
 
@@ -246,11 +245,12 @@ _on_SIGINT() {
 	_interrupted=true
 	_error="interrupted by user"
 	_status=2
+	wait
 }
 
 # signal handler: USR1
 _on_SIGUSR1() {
-	((_fails++))
+	((_done++))
 	wait
 }
 
