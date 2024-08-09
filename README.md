@@ -10,29 +10,31 @@ Examples:
   feed -f urls.txt -c 'wget {item}'
 
 Options:
-  -h, --help     : Show this help.
-  -f, --file     : Specify the file(s) to iterate over.
-                   Each line in the file is treated as an "item",
-                   and is passed to the command specified with '--cmd' option.
-                   Lines that are empty or start with '#' are ignored.
-  -c, --cmd      : Specify the command to run for each item.
-                   Upon running, every occurrence of '{item}' in the command
-                   gets replaced with the current item.
-  -r, --replace  : Specify the placeholder string to be replaced in
-                   the command. (default: {item})
-  -w, --write    : Specify the file to save failed items.
-                   The file can be passed to '--file' afterwards,
-                   if you want to retry the failed items.
-  -u, --update   : Save failed items to the same file as '--file'.
-                   This option is a shortcut for like '-f items.txt -w items.txt'.
-                   If '-f' was multiple, only the 1st file gets overwritten.
-  -i, --interval : Set interval for each iteration. (default: 0)
-                   Examples: 5s = 5 seconds
-                             3m = 3 minutes
-                             1h = 1 hour
-                             1d = 24 hours
-                             3-6m = random seconds between 3m and 6m
-  -p, --parallel : Max number of processes to run in parallel. (default: 0)
+  -h, --help        : Show this help.
+  -f, --file        : File(s) to iterate over.
+                      Each line in the file is treated as an "item",
+                      and is passed to the command specified with '--cmd' option.
+                      Lines that are empty or start with '#' are ignored.
+  -c, --cmd         : Command to run for each item.
+                      Upon running, every occurrence of '{item}' in the command
+                      gets replaced with the current item.
+  -s, --subst       : Placeholder string to be replaced in the command. (default: {item})
+  -w, --write       : File to save failed items to.
+                      The file can be passed to '--file' afterwards,
+                      if you want to retry the failed items.
+  -u, --update      : Save failed items to the same file as '--file'.
+                      This option is a shortcut for like '-f items.txt -w items.txt'.
+                      If '-f' was multiple, only the 1st file is chosen.
+  -p, --parallel    : Max number of processes to run in parallel. (default: 0)
+  -r, --retry       : Max number of retries for a failed item. (default: 0)
+  -ri, --r-interval : Interval for each retry. (default: 1s)
+                      The format is the same as the one for '--interval'.
+  -i, --interval    : Interval for each iteration. (default: 0s)
+                      Format: 5s = 5 seconds
+                              3m = 3 minutes
+                              1h = 1 hour
+                              1d = 24 hours
+                              3-6m = random seconds between 3m and 6m
 
 ````
 
