@@ -33,7 +33,7 @@ Options:
   -c, --cmd      : Specify the command to run for each item.
                    Upon running, every occurrence of '{item}' in the command
                    gets replaced with the current item.
-  -r, --replace  : Specify the placeholder string to be replaced in
+  -s, --subst    : Specify the placeholder string to be replaced in
                    the command. (default: {item})
   -w, --write    : Specify the file to save failed items.
                    The file can be passed to '--file' afterwards,
@@ -64,7 +64,7 @@ _main() {
 
 	local file=() # files to read
 	local cmd="" # command to run
-	local replace="{item}" # placeholder to be replaced with each item
+	local subst="{item}" # placeholder to be replaced with each item
 	local write="" # file to write
 	local update=false # whether to overwrite '--file'
 	local interval="" # iteration interval
@@ -86,8 +86,8 @@ _main() {
 			-c|--cmd)
 				ctx=cmd
 				;;
-			-r|--replace)
-				ctx=replace
+			-s|--subst)
+				ctx=subst
 				;;
 			-w|--write)
 				ctx=write
@@ -110,8 +110,8 @@ _main() {
 				file)
 					file+=("$1")
 					;;
-				replace)
-					replace="$1"
+				subst)
+					subst="$1"
 					ctx=
 					;;
 				write)
@@ -176,7 +176,7 @@ _main() {
 			((total++))
 
 			# replace '{item}' in $cmd with $line
-			local _cmd="${cmd//"$replace"/"$line"}"
+			local _cmd="${cmd//"$subst"/"$line"}"
 
 			# handle ctrl+c
 			if "$_interrupted"; then
