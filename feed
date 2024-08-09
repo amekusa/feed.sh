@@ -43,12 +43,14 @@ Options:
                    If '-f' was multiple, only the 1st file gets overwritten.
   -p, --parallel : Max number of processes to run in parallel. (default: 0)
   -r, --retry    : Max number of retries for a failed item. (default: 0)
-  -i, --interval : Set interval for each iteration. (default: 0)
-                   Examples: 5s = 5 seconds
-                             3m = 3 minutes
-                             1h = 1 hour
-                             1d = 24 hours
-                             3-6m = random seconds between 3m and 6m
+  --r-interval   : Interval for each retry. (default: 1s)
+                   The format is the same as the one for '--interval'.
+  -i, --interval : Set interval for each iteration. (default: 0s)
+                   Format: 5s = 5 seconds
+                           3m = 3 minutes
+                           1h = 1 hour
+                           1d = 24 hours
+                           3-6m = random seconds between 3m and 6m
 
 EOF
 }
@@ -70,7 +72,8 @@ _main() {
 	local update=false # whether to overwrite '--file'
 	local parallel=0 # max processes to run in parallel
 	local retry=0 # max retries
-	local interval="" # iteration interval
+	local r_int=1 # retry interval
+	local interval=0 # iteration interval
 
 	# parsing args
 	local ctx
@@ -99,6 +102,9 @@ _main() {
 				;;
 			-r|--retry)
 				ctx=retry
+				;;
+			--r-interval)
+				ctx=r_int
 				;;
 			-i|--interval)
 				ctx=interval
@@ -131,6 +137,10 @@ _main() {
 					retry="$1"
 					ctx=
 					;;
+				r_int)
+					r_int="$1"
+					ctx=
+					;;
 				interval)
 					interval="$1"
 					ctx=
@@ -148,13 +158,6 @@ _main() {
 	done
 	[ -z "$cmd" ] && _die "specify command to run"
 	cmd="${cmd:1}"
-
-	# parse random interval range
-	local i_min i_max
-	if [[ "$interval" =~ ^([0-9]+)-([0-9]+)([^0-9]*)$ ]]; then
-		i_min="$(_seconds "${BASH_REMATCH[1]}${BASH_REMATCH[3]}")"
-		i_max="$(_seconds "${BASH_REMATCH[2]}${BASH_REMATCH[3]}")"
-	fi
 
 	# prepare a tmp file for logging
 	local tmp
@@ -174,7 +177,7 @@ _main() {
 	# main loop
 	local total=0
 	local f; for f in "${file[@]}"; do
-		local sleep
+		local sleep=0
 		local IFS line
 		while IFS= read -r line; do
 			# skip blank lines and comment lines
@@ -202,26 +205,23 @@ _main() {
 			fi
 
 			# sleep for interval
-			[ -n "$sleep" ] && sleep "$sleep"
+			sleep "$sleep"
 
 			# run the command
 			((_workers++))
 			if [ "$_workers" -le "$parallel" ]
-				then _run "$_cmd" "$retry" "$line" "$tmp" &
-				else _run "$_cmd" "$retry" "$line" "$tmp"
+				then _run "$_cmd" "$retry" "$r_int" "$line" "$tmp" &
+				else _run "$_cmd" "$retry" "$r_int" "$line" "$tmp"
 			fi
 
 			# set interval
-			if [ -n "$i_min" ] && [ -n "$i_max" ]
-				then sleep="$(_random "$i_min" "$i_max")"
-				else sleep="$(_seconds "$interval")"
-			fi
+			sleep="$(_seconds "$interval")"
 		done < "$f"
 	done
 
 	wait
 
-	local fails="$((total-_done))"
+	local fails="$((total - _done))"
 	cat <<- EOF
 
 	--- FINISHED ---
@@ -250,6 +250,7 @@ _main() {
 _run() {
 	local cmd="$1"; shift
 	local retry="$1"; shift
+	local r_int="$1"; shift
 	local line="$1"; shift
 	local tmp="$1"; shift
 
@@ -265,8 +266,8 @@ _run() {
 		echo "$now [FAIL] $cmd (code:$code, err:$err)"
 
 		if [ "$retry" -gt 0 ]; then
-			sleep 1
-			_run "$cmd" "$((retry - 1))" "$line" "$tmp"
+			sleep "$(_seconds "$r_int")"
+			_run "$cmd" "$((retry - 1))" "$r_int" "$line" "$tmp"
 			return
 		fi
 
@@ -282,7 +283,13 @@ _run() {
 }
 
 _seconds() {
-	if [[ "$1" =~ ^([0-9]+)([^0-9]*)$ ]]; then
+	if [ -z "$1" ]; then
+		echo 0
+	elif [[ "$1" =~ ^([0-9]+)-([0-9]+)([^0-9]*)$ ]]; then
+		local min="$(_seconds "${BASH_REMATCH[1]}${BASH_REMATCH[3]}")"
+		local max="$(_seconds "${BASH_REMATCH[2]}${BASH_REMATCH[3]}")"
+		echo "$(_random "$min" "$max")"
+	elif [[ "$1" =~ ^([0-9]+)([^0-9]*)$ ]]; then
 		local n="${BASH_REMATCH[1]}"
 		case "${BASH_REMATCH[2]}" in
 			m) ((n *= 60)) ;;
