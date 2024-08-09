@@ -181,7 +181,7 @@ _main() {
 			# handle ctrl+c
 			if "$_interrupted"; then
 				local now="$(date +'%F %H:%M:%S')"
-				echo "$now [CANCEL] $_cmd"
+				echo "$now [ABRT] $_cmd"
 				if [ -n "$tmp" ]; then
 					cat <<- EOF >> "$tmp"
 					# $now, interrupted by user
