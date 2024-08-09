@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # === FEED.SH ===
-# by Satoshi Soma (github.com/amekusa)
+# By Satoshi Soma (github.com/amekusa)
 
-_version="1.0.0"
+_version="1.1.0"
 
 _pid=$$
 _interrupted=false
@@ -296,4 +296,7 @@ trap _on_SIGUSR1 USR1
 trap _on_SIGUSR2 USR2
 
 _main "$@"
+
+# FEED.SH
+# (c) 2024 Satoshi Soma / amekusa.com
 
