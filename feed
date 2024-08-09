@@ -45,7 +45,8 @@ Options:
                    Examples: 5s = 5 seconds
                              3m = 3 minutes
                              1h = 1 hour
-                             3-6m = random between 3m and 6m
+                             1d = 24 hours
+                             3-6m = random seconds between 3m and 6m
   -p, --parallel : Max number of processes to run in parallel. (default: 0)
 
 EOF
@@ -267,6 +268,7 @@ _seconds() {
 		case "${BASH_REMATCH[2]}" in
 			m) ((n *= 60)) ;;
 			h) ((n *= 3600)) ;;
+			d) ((n *= 86400)) ;;
 		esac
 		echo "$n"
 	else
