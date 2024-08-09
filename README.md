@@ -25,6 +25,7 @@ Options:
   -u, --update      : Save failed items to the same file as '--file'.
                       This option is a shortcut for like '-f items.txt -w items.txt'.
                       If '-f' was multiple, only the 1st file is chosen.
+  -d, --dedupe      : Ignore duplicate lines.
   -p, --parallel    : Max number of processes to run in parallel. (default: 0)
   -r, --retry       : Max number of retries for a failed item. (default: 0)
   -ri, --r-interval : Interval for each retry. (default: 1s)
