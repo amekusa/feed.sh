@@ -42,6 +42,7 @@ Options:
                    This option is a shortcut for like '-f items.txt -w items.txt'.
                    If '-f' was multiple, only the 1st file gets overwritten.
   -p, --parallel : Max number of processes to run in parallel. (default: 0)
+  -r, --retry    : Max number of retries for a failed item. (default: 0)
   -i, --interval : Set interval for each iteration. (default: 0)
                    Examples: 5s = 5 seconds
                              3m = 3 minutes
@@ -68,6 +69,7 @@ _main() {
 	local write="" # file to write
 	local update=false # whether to overwrite '--file'
 	local parallel=0 # max processes to run in parallel
+	local retry=0 # max retries
 	local interval="" # iteration interval
 
 	# parsing args
@@ -95,6 +97,9 @@ _main() {
 			-p|--parallel)
 				ctx=parallel
 				;;
+			-r|--retry)
+				ctx=retry
+				;;
 			-i|--interval)
 				ctx=interval
 				;;
@@ -120,6 +125,10 @@ _main() {
 					;;
 				parallel)
 					parallel="$1"
+					ctx=
+					;;
+				retry)
+					retry="$1"
 					ctx=
 					;;
 				interval)
@@ -197,7 +206,6 @@ _main() {
 
 			# run the command
 			((_workers++))
-			local retry=3
 			if [ "$_workers" -le "$parallel" ]
 				then _run "$_cmd" "$retry" "$line" "$tmp" &
 				else _run "$_cmd" "$retry" "$line" "$tmp"
