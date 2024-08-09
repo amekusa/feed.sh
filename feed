@@ -7,6 +7,7 @@ _version="0.2.0"
 _interrupted=false
 _status=""
 _error=""
+_pid=$$
 
 _total=0
 _fails=0
@@ -222,7 +223,6 @@ _run() {
 	local out
 	if out="$(eval "$1" 2>&1)"; then
 		echo "$(date +'%F %H:%M:%S') [DONE] $1"
-		return 0
 	else
 		local code="$?"
 		local now="$(date +'%F %H:%M:%S')"
@@ -234,8 +234,7 @@ _run() {
 
 			EOF
 		fi
-		((_fails++))
-		return 1
+		kill -s USR1 $_pid # send USR1 signal to parent
 	fi
 }
 
@@ -247,7 +246,13 @@ _kill() {
 	_status=2
 }
 
+_on_sigusr1() {
+	((_fails++))
+	wait
+}
+
 trap _kill INT
+trap _on_sigusr1 USR1
 
 _main "$@"
 
