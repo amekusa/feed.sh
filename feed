@@ -35,7 +35,7 @@ Options:
                    gets replaced with the current item.
   -s, --subst    : Specify the placeholder string to be replaced in
                    the command. (default: {item})
-  -w, --write    : Specify the file to save failed items.
+  -w, --write    : Specify the file to save failed items to.
                    The file can be passed to '--file' afterwards,
                    if you want to retry the failed items.
   -u, --update   : Save failed items to the same file as '--file'.
