@@ -3,7 +3,7 @@
 # === FEED.SH ===
 # By Satoshi Soma (github.com/amekusa)
 
-_version="2.0.0"
+_version="2.1.0"
 
 _pid=$$
 _interrupted=false
