@@ -249,10 +249,11 @@ _run() {
 		# failure
 		local code="$?"
 		local now="$(date +'%F %H:%M:%S')"
-		echo "$now [FAIL] $1 (code:$code, err:$out)"
+		local err="${out//[$'\t\r\n']/ }" # replace line-breaks with spaces
+		echo "$now [FAIL] $1 (code:$code, err:$err)"
 		if [ -n "$3" ]; then
 			cat <<- EOF >> "$3"
-			# $now, code:$code, err:$out
+			# $now, code:$code, err:$err
 			$2
 
 			EOF
