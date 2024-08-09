@@ -28,6 +28,6 @@ Options:
                    If '-f' was multiple, only the 1st file gets overwritten.
   -i, --interval : Set interval for eash iteration.
                    Examples: 5s, 10m, 1h
-  -p, --parallel : Run in parallel.
+  -p, --parallel : Max number of processes to run in parallel. (default: 0)
 
 ````
