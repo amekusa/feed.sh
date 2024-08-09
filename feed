@@ -197,10 +197,10 @@ _main() {
 
 			# run the command
 			((_workers++))
-			if [ "$_workers" -le "$parallel" ]; then
-				_run "$_cmd" "$line" "$tmp" &
-			else
-				_run "$_cmd" "$line" "$tmp"
+			local retry=3
+			if [ "$_workers" -le "$parallel" ]
+				then _run "$_cmd" "$retry" "$line" "$tmp" &
+				else _run "$_cmd" "$retry" "$line" "$tmp"
 			fi
 
 			# set interval
@@ -240,21 +240,32 @@ _main() {
 }
 
 _run() {
-	local out
-	if out="$(eval "$1" 2>&1)"; then
+	local cmd="$1"; shift
+	local retry="$1"; shift
+	local line="$1"; shift
+	local tmp="$1"; shift
+
+	if out="$(eval "$cmd" 2>&1)"; then
 		# success
-		echo "$(date +'%F %H:%M:%S') [DONE] $1"
+		echo "$(date +'%F %H:%M:%S') [DONE] $cmd"
 		kill -s USR1 $_pid # send USR1 signal to self (or parent)
 	else
 		# failure
 		local code="$?"
 		local now="$(date +'%F %H:%M:%S')"
 		local err="${out//[$'\t\r\n']/ }" # replace line-breaks with spaces
-		echo "$now [FAIL] $1 (code:$code, err:$err)"
-		if [ -n "$3" ]; then
-			cat <<- EOF >> "$3"
+		echo "$now [FAIL] $cmd (code:$code, err:$err)"
+
+		if [ "$retry" -gt 0 ]; then
+			sleep 1
+			_run "$cmd" "$((retry - 1))" "$line" "$tmp"
+			return
+		fi
+
+		if [ -n "$tmp" ]; then
+			cat <<- EOF >> "$tmp"
 			# $now, code:$code, err:$err
-			$2
+			$line
 
 			EOF
 		fi
