@@ -141,7 +141,7 @@ _main() {
 
 	# parse random interval range
 	local i_min i_max i_unit
-	if [[ "$interval" =~ ^([[0-9]+)-([0-9]+)([smh]?)$ ]]; then
+	if [[ "$interval" =~ ^([0-9]+)-([0-9]+)([smh]?)$ ]]; then
 		i_min="${BASH_REMATCH[1]}"
 		i_max="${BASH_REMATCH[2]}"
 		i_unit="${BASH_REMATCH[3]}"
