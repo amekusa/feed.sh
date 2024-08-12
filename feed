@@ -81,7 +81,6 @@ _main() {
 
 	# parsing args
 	local ctx
-	local err=false
 	while [ $# -gt 0 ]; do
 		case "$ctx" in
 		cmd) # cmd context
@@ -123,7 +122,7 @@ _main() {
 				queue=true
 				;;
 			-*)
-				err=true
+				_die "invalid option: '$1'"
 				;;
 			*)
 				case "$ctx" in
@@ -158,17 +157,16 @@ _main() {
 					ctx=
 					;;
 				*)
-					err=true
+					_die "invalid argument: '$1'"
 					;;
 				esac
 				;;
 			esac
 			;;
 		esac
-		$err && _die "invalid argument: '$1'"
 		shift
 	done
-	[ -z "$cmd" ] && _die "specify command to run"
+	[ -z "$cmd" ] && _die "'--cmd' option is required"
 	cmd="${cmd:1}"
 
 	# prepare a tmp file for logging
