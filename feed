@@ -73,7 +73,7 @@ _main() {
 	local write="" # file to write
 	local update=false # whether to overwrite '--file'
 	local dedupe=false # whether to ignore duplicate lines
-	local queue=false
+	local queue=false # whether to run in queue mode
 	local parallel=0 # max processes to run in parallel
 	local retry=0 # max retries
 	local r_int=1 # retry interval
@@ -186,6 +186,7 @@ _main() {
 	fi
 
 	local total=0
+	local last=0
 	_feed() {
 		# skip blank lines and comment lines
 		if [ -z "$1" ] || [[ "$1" =~ ^[[:space:]]*# ]]; then
@@ -212,7 +213,8 @@ _main() {
 		fi
 
 		# sleep for interval
-		[ "$total" -gt 1 ] && sleep "$(_seconds "$interval")"
+		local sleep="$(($(_seconds "$interval") - ($(date +%s) - last)))" # interval - elapsed
+		[ "$sleep" -gt 0 ] && sleep "$sleep"
 
 		# run the command
 		((_workers++))
@@ -220,6 +222,8 @@ _main() {
 			then _run "$_cmd" "$retry" "$r_int" "$1" "$tmp" &
 			else _run "$_cmd" "$retry" "$r_int" "$1" "$tmp"
 		fi
+
+		last="$(date +%s)"
 	}
 
 	# for each file
