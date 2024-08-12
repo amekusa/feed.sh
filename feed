@@ -148,10 +148,12 @@ _main() {
 					ctx=
 					;;
 				r_int)
+					_seconds "$1" &>/dev/null || _die "invalid time format for '--r-interval'"
 					r_int="$1"
 					ctx=
 					;;
 				interval)
+					_seconds "$1" &>/dev/null || _die "invalid time format for '--interval'"
 					interval="$1"
 					ctx=
 					;;
@@ -332,7 +334,8 @@ _seconds() {
 		esac
 		echo "$n"
 	else
-		echo "$1"
+		echo 0
+		return 1
 	fi
 }
 
