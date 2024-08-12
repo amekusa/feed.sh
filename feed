@@ -42,6 +42,7 @@ Options:
                       This option is a shortcut for like '-f items.txt -w items.txt'.
                       If '-f' was multiple, only the 1st file is chosen.
   -d, --dedupe      : Ignore duplicate lines.
+  -q, --queue       : Run in "queue" mode.
   -p, --parallel    : Max number of processes to run in parallel. (default: 0)
   -r, --retry       : Max number of retries for a failed item. (default: 0)
   -ri, --r-interval : Interval for each retry. (default: 1s)
@@ -72,6 +73,7 @@ _main() {
 	local write="" # file to write
 	local update=false # whether to overwrite '--file'
 	local dedupe=false # whether to ignore duplicate lines
+	local queue=false
 	local parallel=0 # max processes to run in parallel
 	local retry=0 # max retries
 	local r_int=1 # retry interval
@@ -116,6 +118,9 @@ _main() {
 				;;
 			-d|--dedupe)
 				dedupe=true
+				;;
+			-q|--queue)
+				queue=true
 				;;
 			-*)
 				err=true
@@ -180,8 +185,44 @@ _main() {
 		EOF
 	fi
 
-	# for each file
 	local total=0
+	_feed() {
+		# skip blank lines and comment lines
+		if [ -z "$1" ] || [[ "$1" =~ ^[[:space:]]*# ]]; then
+			return 1
+		fi
+
+		((total++))
+
+		# replace '{item}' in $cmd with $1
+		local _cmd="${cmd//"$subst"/"$1"}"
+
+		# handle ctrl+c
+		if [ "$_interrupted" -gt 0 ]; then
+			local now="$(date +'%F %H:%M:%S')"
+			echo "$now [ABRT] $_cmd"
+			if [ -n "$tmp" ]; then
+				cat <<- EOF >> "$tmp"
+				# $now, interrupted by user
+				$1
+
+				EOF
+			fi
+			return 1
+		fi
+
+		# sleep for interval
+		[ "$total" -gt 1 ] && sleep "$(_seconds "$interval")"
+
+		# run the command
+		((_workers++))
+		if [ "$_workers" -le "$parallel" ]
+			then _run "$_cmd" "$retry" "$r_int" "$1" "$tmp" &
+			else _run "$_cmd" "$retry" "$r_int" "$1" "$tmp"
+		fi
+	}
+
+	# for each file
 	local f
 	for f in "${file[@]}"; do
 
@@ -195,47 +236,19 @@ _main() {
 		fi
 
 		# for each line
-		local sleep=0
 		local IFS line
 		while IFS= read -r line; do
-			# skip blank lines and comment lines
-			if [ -z "$line" ] || [[ "$line" =~ ^[[:space:]]*# ]]; then
-				continue
-			fi
-
-			((total++))
-
-			# replace '{item}' in $cmd with $line
-			local _cmd="${cmd//"$subst"/"$line"}"
-
-			# handle ctrl+c
-			if [ "$_interrupted" -gt 0 ]; then
-				local now="$(date +'%F %H:%M:%S')"
-				echo "$now [ABRT] $_cmd"
-				if [ -n "$tmp" ]; then
-					cat <<- EOF >> "$tmp"
-					# $now, interrupted by user
-					$line
-
-					EOF
-				fi
-				continue
-			fi
-
-			# sleep for interval
-			sleep "$sleep"
-
-			# run the command
-			((_workers++))
-			if [ "$_workers" -le "$parallel" ]
-				then _run "$_cmd" "$retry" "$r_int" "$line" "$tmp" &
-				else _run "$_cmd" "$retry" "$r_int" "$line" "$tmp"
-			fi
-
-			# set interval
-			sleep="$(_seconds "$interval")"
+			_feed "$line"
 		done < "$f"
 	done
+
+	# queue mode
+	if "$queue"; then
+		local IFS line
+		while IFS= read -r line; do
+			_feed "$line"
+		done
+	fi
 
 	wait
 
