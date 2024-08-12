@@ -58,7 +58,7 @@ EOF
 }
 
 _die() {
-	echo "[ERROR] $1"
+	echo "[ERROR] $1" >&2
 	exit 1
 }
 
@@ -276,7 +276,7 @@ _main() {
 	fi
 
 	if [ -n "$_status" ]; then
-		echo "[ERROR] $_error"
+		echo "[ERROR] $_error" >&2
 		return "$_status"
 	fi
 }
