@@ -29,10 +29,10 @@ Examples:
 Options:
                 -h, --help : Show this help.
         -f, --file <file+> : File(s) to iterate over.
-               -q, --queue : Run in "queue" mode.
                              Each line in the file is treated as an "item",
                              and is passed to the command specified with '--cmd' option.
                              Lines that are empty or start with '#' are ignored.
+               -q, --queue : Run in "queue" mode.
            -c, --cmd <cmd> : Command to run for each item.
                              Upon running, every occurrence of '{item}' in the command
                              gets replaced with the current item.
