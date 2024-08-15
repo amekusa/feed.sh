@@ -6,6 +6,7 @@
 _version="2.1.1"
 
 _pid=$$
+_state=""
 _interrupted=0
 _status=""
 _error=""
@@ -226,32 +227,58 @@ _main() {
 		last="$(date +%s)"
 	}
 
-	# for each file
-	local f
-	for f in "${file[@]}"; do
+	# file mode
+	if [ -n "$file" ]; then
+		_state=FILE
+		_interrupted=0
 
-		# remove duplicate lines and save to tmp
-		if "$dedupe"; then
-			local _f
-			_f="$(mktemp)" || _die "failed to create a temp file"
-			_junk+=("$_f")
-			awk '!seen[$0]++' "$f" > "$_f" || _die "failed to dedupe: $f"
-			f="$_f"
-		fi
+		# for each file
+		local f
+		for f in "${file[@]}"; do
 
-		# for each line
-		local IFS line
-		while IFS= read -r line; do
-			_feed "$line"
-		done < "$f"
-	done
+			# remove duplicate lines and save to tmp
+			if "$dedupe"; then
+				local _f
+				_f="$(mktemp)" || _die "failed to create a temp file"
+				_junk+=("$_f")
+				awk '!seen[$0]++' "$f" > "$_f" || _die "failed to dedupe: $f"
+				f="$_f"
+			fi
+
+			# for each line
+			local IFS line
+			while IFS= read -r line; do
+				_feed "$line"
+			done < "$f"
+		done
+		_state=
+	fi
 
 	# queue mode
 	if "$queue"; then
-		local IFS line
-		while IFS= read -r line; do
-			_feed "$line"
+		_state=QUEUE
+		_interrupted=0
+		cat <<- EOF
+
+		--- QUEUE MODE ---
+		Enter '--quit' or '--exit' to exit.
+		EOF
+		while true; do
+			echo
+			echo -n "Enter new item: "
+			local IFS line
+			IFS= read -r line || break
+			case "$line" in
+			--quit|--exit|\'--quit\'|\'--exit\')
+				break
+				;;
+			*)
+				_interrupted=0
+				_feed "$line"
+				;;
+			esac
 		done
+		_state=
 	fi
 
 	wait
@@ -356,14 +383,29 @@ _on_SIGINT() {
 	((_interrupted++))
 	case "$_interrupted" in
 	1)
-		echo
-		echo "Terminating..."
-		_error="interrupted by user"
-		_status=2
-		;;
-	2)
-		echo
-		echo "Press CTRL+C again to force quit."
+		case "$_state" in
+		FILE)
+			cat <<- EOF
+
+			Terminating...
+			(Press CTRL+C again to force quit.)
+			EOF
+			_error="interrupted by user"
+			_status=2
+			;;
+		QUEUE)
+			cat <<- EOF
+
+			Type '--quit' or '--exit' to exit.
+			(Press CTRL+C again to force quit.)
+
+			EOF
+			echo -n "Enter new item: "
+			;;
+		*)
+			exit 1
+			;;
+		esac
 		;;
 	*)
 		exit 1
