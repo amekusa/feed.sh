@@ -38,7 +38,7 @@ Options:
                              gets replaced with the current item.
          -s, --subst <any> : Placeholder string to be replaced in the command. (default: {item})
        -m, --match <regex> : Filter items with a regex pattern.
-                             Matched groups can be referenced with '\${N}' in '--cmd'.
+                             Matched groups can be referenced with '(#N)' in '--cmd'.
         -w, --write <file> : File to save failed items to.
                              The file can be passed to '--file' afterwards,
                              if you want to retry the failed items.
@@ -203,7 +203,7 @@ _main() {
 			return 1
 		fi
 
-		# matching pattern
+		# regex filtering
 		local regex=false
 		if [ -n "$match" ]; then
 			[[ "$1" =~ $match ]] || return 1
@@ -215,10 +215,10 @@ _main() {
 		# command to execute
 		local _cmd="$cmd"
 
-		# replace regex groups ( ${n} )
+		# replace regex groups
 		if "$regex"; then
 			for i in "${!BASH_REMATCH[@]}"; do
-				_cmd="${_cmd//"\${$i}"/"${BASH_REMATCH[$i]}"}"
+				_cmd="${_cmd//"(#$i)"/"${BASH_REMATCH[$i]}"}"
 			done
 		fi
 
