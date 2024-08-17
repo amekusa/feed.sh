@@ -20,6 +20,8 @@ Options:
                              Upon running, every occurrence of '{item}' in the command
                              gets replaced with the current item.
          -s, --subst <any> : Placeholder string to be replaced in the command. (default: {item})
+       -m, --match <regex> : Filter items with a regex pattern.
+                             Matched groups can be referenced with '(#N)' in '--cmd'.
         -w, --write <file> : File to save failed items to.
                              The file can be passed to '--file' afterwards,
                              if you want to retry the failed items.
