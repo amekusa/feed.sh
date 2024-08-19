@@ -45,7 +45,7 @@ Options:
               -u, --update : Save failed items to the same file as '--file'.
                              This option is a shortcut for like '-f items.txt -w items.txt'.
                              If '-f' was multiple, only the 1st file is chosen.
-              -d, --dedupe : Ignore duplicate lines.
+              -d, --dedupe : Ignore duplicate items.
       -p, --parallel <num> : Max number of processes to run in parallel. (default: 0)
          -r, --retry <num> : Max number of retries for a failed item. (default: 0)
   -ri, --r-interval <time> : Interval for each retry. (default: 1s)
@@ -260,25 +260,21 @@ _main() {
 		_state=FILE
 		_interrupted=0
 
-		# for each file
+		# concat files to 1 tmp file
 		local f
-		for f in "${file[@]}"; do
-
-			# remove duplicate lines and save to tmp
-			if "$dedupe"; then
-				local _f
-				_f="$(mktemp)" || _die "failed to create a temp file"
-				_junk+=("$_f")
-				awk '!seen[$0]++' "$f" > "$_f" || _die "failed to dedupe: $f"
-				f="$_f"
+		f="$(mktemp)" || _die "failed to create a temp file"
+		_junk+=("$f")
+		cat "${file[@]}" | awk '!/^([[:space:]]*#.*)?$/' | {
+			if "$dedupe"
+				then awk '!seen[$0]++'
+				else cat -
 			fi
+		} > "$f"
 
-			# for each line
-			local IFS line
-			while IFS= read -r line; do
-				_feed "$line"
-			done < "$f"
-		done
+		local IFS line
+		while IFS= read -r line; do
+			_feed "$line"
+		done < "$f"
 		_state=
 	fi
 
