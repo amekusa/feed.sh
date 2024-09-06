@@ -248,13 +248,51 @@ _main() {
 		# run the command
 		((_workers++))
 		if [ "$_workers" -le "$parallel" ]
-			then _run "$_cmd" "$retry" "$r_int" "$1" "$tmp" &
-			else _run "$_cmd" "$retry" "$r_int" "$1" "$tmp"
+			then _run "$_cmd" "$retry" "$1" &
+			else _run "$_cmd" "$retry" "$1"
 		fi
 
 		last="$(date +%s)"
 	}
 
+	_run() {
+		local cmd="$1"; shift
+		local retry="$1"; shift
+		local line="$1"; shift
+
+		echo
+		echo "# $(date +'%F %H:%M:%S') [EXEC] $cmd"
+
+		if out="$(eval "$cmd" 2>&1)"; then
+			# success
+			echo
+			echo "# $(date +'%F %H:%M:%S') [DONE] $cmd"
+			kill -s USR1 $_pid # send USR1 signal to self (or parent)
+		else
+			# failure
+			local code="$?"
+			local now="$(date +'%F %H:%M:%S')"
+			local err="${out//[$'\t\r\n']/ }" # replace line-breaks with spaces
+			echo
+			echo "# $now [FAIL] $cmd (code:$code, err:$err)"
+
+			if [ "$retry" -gt 0 ]; then
+				sleep "$(_seconds "$r_int")"
+				_run "$cmd" "$((retry - 1))" "$r_int" "$line"
+				return
+			fi
+
+			if [ -n "$tmp" ]; then
+				cat <<- EOF >> "$tmp"
+				# $now, code:$code, err:$err
+				$line
+
+				EOF
+			fi
+			kill -s USR2 $_pid # send USR2 signal to self (or parent)
+		fi
+	}
+_
 	# file mode
 	if [ -n "$file" ]; then
 		_state=FILE
@@ -327,46 +365,6 @@ _main() {
 	if [ -n "$_status" ]; then
 		echo "[ERROR] $_error" >&2
 		return "$_status"
-	fi
-}
-
-_run() {
-	local cmd="$1"; shift
-	local retry="$1"; shift
-	local r_int="$1"; shift
-	local line="$1"; shift
-	local tmp="$1"; shift
-
-	echo
-	echo "# $(date +'%F %H:%M:%S') [EXEC] $cmd"
-
-	if out="$(eval "$cmd" 2>&1)"; then
-		# success
-		echo
-		echo "# $(date +'%F %H:%M:%S') [DONE] $cmd"
-		kill -s USR1 $_pid # send USR1 signal to self (or parent)
-	else
-		# failure
-		local code="$?"
-		local now="$(date +'%F %H:%M:%S')"
-		local err="${out//[$'\t\r\n']/ }" # replace line-breaks with spaces
-		echo
-		echo "# $now [FAIL] $cmd (code:$code, err:$err)"
-
-		if [ "$retry" -gt 0 ]; then
-			sleep "$(_seconds "$r_int")"
-			_run "$cmd" "$((retry - 1))" "$r_int" "$line" "$tmp"
-			return
-		fi
-
-		if [ -n "$tmp" ]; then
-			cat <<- EOF >> "$tmp"
-			# $now, code:$code, err:$err
-			$line
-
-			EOF
-		fi
-		kill -s USR2 $_pid # send USR2 signal to self (or parent)
 	fi
 }
 
